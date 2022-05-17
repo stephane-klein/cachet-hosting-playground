@@ -1,0 +1,42 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:14-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cachet
+      POSTGRES_USER: cachet
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - ./volumes/postgres/:/var/lib/postgresql/
+    healthcheck:
+      test: ["CMD", "sh", "-c", "pg_isready -U $$POSTGRES_USER -h $$(hostname -i)"]
+      interval: 10s
+      start_period: 30s
+
+  cachet:
+    image: immortaly007/cachet:2.3.18-fix # image come from https://github.com/CachetHQ/Cachet/issues/4132#issuecomment-812717499
+    #restart: unless-stopped
+    ports:
+      - 80:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    links:
+      - postgres:postgres
+    environment:
+      DB_DRIVER: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: cachet
+      DB_USERNAME: cachet
+      DB_PASSWORD: secret
+      DB_PREFIX: chq_
+      APP_KEY: "base64:M29en6/ltBjDcsUnCIUw7TPyjqt9UbQNQJXOm+9dEnM="
+      APP_LOG: errorlog
+      APP_ENV: production
+      APP_DEBUG: "true"
+      DEBUG: "true"
+      CACHE_DRIVER: file
+      SESSION_DRIVER: file
+      QUEUE_DRIVER: sync
